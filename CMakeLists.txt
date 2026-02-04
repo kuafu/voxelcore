@@ -1,4 +1,11 @@
 cmake_minimum_required(VERSION 3.5)
+
+# On Windows, default to vcpkg toolchain if not set (so CMake GUI works without manual entry)
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows" AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    set(CMAKE_TOOLCHAIN_FILE "C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        CACHE STRING "vcpkg toolchain file")
+endif()
+
 project(VoxelEngine)
 
 set(CMAKE_CXX_STANDARD 17)

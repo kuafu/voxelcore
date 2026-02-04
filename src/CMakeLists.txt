@@ -7,11 +7,16 @@ list(REMOVE_ITEM sources ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
 add_library(VoxelEngineSrc STATIC ${sources} ${headers})
 
 find_package(OpenGL REQUIRED)
-find_package(GLEW REQUIRED)
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    # Use CONFIG so vcpkg's GLEW is found (GLEW::GLEW); FindGLEW.cmake would need GLEW_INCLUDE_DIRS/GLEW_LIBRARIES
+    find_package(GLEW CONFIG REQUIRED)
+    find_package(OpenAL CONFIG REQUIRED)
+else()
+    find_package(GLEW REQUIRED)
+endif()
 find_package(glm REQUIRED)
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    # specific for vcpkg
-    find_package(OpenAL CONFIG REQUIRED)
+    # OpenAL already found above
 else()
     find_package(OpenAL REQUIRED)
 endif()
@@ -25,15 +30,21 @@ endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     find_package(vorbis REQUIRED)
+    # Prefer manifest-mode path (VCPKG_INSTALLED_DIR); fallback to classic VCPKG_ROOT
+    if(DEFINED VCPKG_INSTALLED_DIR)
+        set(_luajit_base "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}")
+    else()
+        set(_luajit_base "$ENV{VCPKG_ROOT}/packages/luajit_${VCPKG_TARGET_TRIPLET}")
+    endif()
     if(VCPKG_TARGET_TRIPLET MATCHES "static")
         add_library(luajit STATIC IMPORTED)
         set_target_properties(
             luajit
             PROPERTIES
                 IMPORTED_LOCATION
-                "$ENV{VCPKG_ROOT}/packages/luajit_${VCPKG_TARGET_TRIPLET}/lib/libluajit-5.1.a"
+                "${_luajit_base}/lib/libluajit-5.1.a"
                 INTERFACE_INCLUDE_DIRECTORIES
-                "$ENV{VCPKG_ROOT}/packages/luajit_${VCPKG_TARGET_TRIPLET}/include/"
+                "${_luajit_base}/include;${_luajit_base}/include/luajit"
         )
     else()
         add_library(luajit SHARED IMPORTED)
@@ -41,11 +52,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
             luajit
             PROPERTIES
                 IMPORTED_LOCATION
-                "$ENV{VCPKG_ROOT}/packages/luajit_${VCPKG_TARGET_TRIPLET}/bin/lua51.dll"
+                "${_luajit_base}/bin/lua51.dll"
                 IMPORTED_IMPLIB
-                "$ENV{VCPKG_ROOT}/packages/luajit_${VCPKG_TARGET_TRIPLET}/lib/lua51.lib"
+                "${_luajit_base}/lib/lua51.lib"
                 INTERFACE_INCLUDE_DIRECTORIES
-                "$ENV{VCPKG_ROOT}/packages/luajit_${VCPKG_TARGET_TRIPLET}/include/luajit"
+                "${_luajit_base}/include/luajit"
         )
     endif()
 
